@@ -1,0 +1,328 @@
+<section id="chatbot-banner">
+  <img
+    src="https://stucowebsolutions.github.io/clientsolutions/trattoriadinapoli/assets/trattbot.png"
+    alt="TrattBot mascot"
+    id="chatbot-image"
+  />
+
+  <div id="chatbot-container">
+    <div id="chatbot-header">Tratt-Bot</div>
+    <div id="chatbot-body"></div>
+    <div id="chatbot-input">
+      <input
+        type="text"
+        id="userInput"
+        placeholder="Type a message..."
+        aria-label="Chat message input"
+      />
+      <button id="sendBtn" aria-label="Send message">Send</button>
+    </div>
+  </div>
+</section>
+
+<style>
+:root {
+  --ash: #707070;
+  --cream: #f7f5f0;
+  --red: #7f1d1d;
+  --sage: #9c9b7a;
+  --green: #09aa06;
+  --border-gold: #b08006;
+  --dark-text: #141414;
+  --white: #ffffff;
+  --gray-bg: #f5f5f5;
+}
+
+/* === Tratt-Bot Section === */
+#chatbot-banner {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 90%;
+  max-width: 1200px;
+  margin: auto;
+  padding: 24px;
+  background: var(--ash);
+  color: var(--dark-text);
+  font-family: "Poppins", system-ui, sans-serif;
+  border-radius: 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  box-sizing: border-box;
+  transition: all 0.3s ease;
+}
+
+/* === Image === */
+#chatbot-image {
+  width: 40%;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.25));
+  transition: transform 0.3s ease;
+}
+#chatbot-image:hover {
+  transform: scale(1.1);
+}
+
+/* === Chat Container === */
+#chatbot-container {
+  width: 55%;
+  height: 400px;
+  max-height: 600px;
+  background: var(--cream);
+  display: flex;
+  flex-direction: column;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* === Header === */
+#chatbot-header {
+  background: var(--red);
+  color: var(--white);
+  text-align: center;
+  padding: 14px;
+  font-weight: 600;
+  font-size: 18px;
+  letter-spacing: 0.5px;
+  border-top-left-radius: 14px;
+  border-top-right-radius: 14px;
+}
+
+/* === Body === */
+#chatbot-body {
+  flex: 1;
+  background: var(--gray-bg);
+  color: var(--dark-text);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+.message {
+  max-width: 80%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 20px;
+  line-height: 1.4;
+  word-wrap: break-word;
+  transition: transform 0.25s ease, background-color 0.3s;
+}
+
+.message.user {
+  background: var(--green);
+  align-self: flex-end;
+  border: 1px solid var(--sage);
+}
+
+.message.bot {
+  background: var(--white);
+  align-self: flex-start;
+  border: 1px solid #ddd;
+}
+
+/* === Input === */
+#chatbot-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--white);
+  padding: 10px;
+  border-top: 1px solid var(--border-gold);
+  box-sizing: border-box;
+}
+
+#chatbot-input input {
+  max-width: 90%;
+  flex: 1;
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  color: var(--dark-text);
+  box-sizing: border-box;
+}
+
+#sendBtn {
+  margin:auto;
+  width: 15%;
+  background: var(--red);
+  color: var(--white);
+  border: none;
+  padding: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  border-radius: 8px;
+  transition: background 0.25s ease, transform 0.1s;
+}
+#sendBtn:hover {
+  background: #b58d3d;
+}
+#sendBtn:active {
+  transform: scale(0.96);
+}
+
+/* === Responsive === */
+@media (max-width: 800px) {
+  #chatbot-banner {
+    flex-direction: column;
+    align-items: center;
+    height: auto;
+  }
+  #chatbot-image {
+    width: 60%;
+    max-width: 240px;
+    margin-bottom: 20px;
+  }
+  #chatbot-container {
+    width: 100%;
+    height: auto;
+    max-height: 520px;
+  }
+  #sendBtn {
+    width: 20%;
+  }
+  #chatbot-input input {
+    width: 60%;
+  }
+}
+</style>
+
+<script>
+const sendBtn = document.getElementById("sendBtn");
+const userInput = document.getElementById("userInput");
+const chatBody = document.getElementById("chatbot-body");
+
+function addMessage(sender, text) {
+  const msg = document.createElement("div");
+  msg.classList.add("message", sender);
+  msg.textContent = text;
+  chatBody.appendChild(msg);
+  chatBody.scrollTop = chatBody.scrollHeight;
+}
+
+// --- Improved Matching ---
+function normalize(input) {
+  return input
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, "")
+    .replace(/([a-z])\1{2,}/g, "$1")
+    .trim();
+}
+
+function fuzzyMatch(msg, root) {
+  const pattern = new RegExp(root.split("").join(".{0,2}"), "i");
+  return pattern.test(msg);
+}
+
+function comboMatch(msg, keywords) {
+  return keywords.every((word) => fuzzyMatch(msg, word));
+}
+
+function ask(msg, patterns) {
+  for (let p of patterns)
+    if (Array.isArray(p) && comboMatch(msg, p)) return true;
+  return patterns.some((p) => typeof p === "string" && fuzzyMatch(msg, p));
+}
+
+// --- Multi-message Response ---
+function getResponse(input) {
+  const msg = normalize(input);
+
+  if (ask(msg, [["menu", "vegetarian"], ["menu", "vegan"], ["vegetarian"], ["veggie"], ["vegan"]]))
+    return ["We offer vegetarian pizzas, salads, and pasta dishes — plenty to enjoy!"];
+  
+  if (ask(msg, [["reservation"], ["book", "table"], "reserve", "booking"]))
+    return [
+      "Reservations aren't required, but you can make one online or by calling us.",
+      "We do recommend it during busy hours!"
+    ];
+
+  if (ask(msg, [["dress"], ["attire"], "clothes"]))
+    return ["No dress code here — come as you are!"];
+
+  if (ask(msg, [["hours"], ["open", "time"], ["closing"], ["today", "hours"], ["close", "time"]]))
+    return ["We're open Tue–Thu 11 AM – 9 PM, Fri/Sat 11 AM – 10 PM.", "Closed Sunday & Monday."];
+
+  if (ask(msg, [["location"], ["where"], ["address"], ["directions"], ["map"]]))
+    return ["We’re located in Perry, GA — at 904 Commerce Street!"];
+
+  if (ask(msg, [["gluten"], ["celiac"], ["gf"]]))
+    return ["We have gluten-free pasta, salads, and non-breaded protein options.", "Just let your server know when you order."];
+
+  if (ask(msg, [["allergy"], ["nuts"], ["dairy"], ["shellfish"]]))
+    return ["We do our best to accommodate allergies — please inform your server when you arrive."];
+
+  if (ask(msg, [["menu"], ["food"], ["dishes"], ["lunch"], ["dinner"], ["special"], ["chef"]]))
+    return [
+      "We have separate menus for lunch and dinner!",
+      "You can view both using the links at the top of our website."
+    ];
+
+  if (ask(msg, [["delivery"], ["takeout"], ["carryout"]]))
+    return [
+      "We don’t offer delivery — sorry about that.",
+      "But you can place takeout orders online or by phone anytime during business hours."
+    ];
+
+  if (ask(msg, [["gift"], ["card"], ["certificate"]]))
+    return ["Gift cards can be purchased in person or by phone."];
+
+  if (ask(msg, [["cater"], ["event"], ["party"], ["wedding"], ["banquet"], ["large", "order"]]))
+    return [
+      "We cater events and private parties!",
+      "Requests can be made online, by phone, or by email.",
+      "Please note a 50% deposit is required to confirm."
+    ];
+
+  if (ask(msg, [["payment"], ["credit"], ["card"], ["apple pay"], ["cash"], ["visa"], ["mastercard"]]))
+    return ["We accept all major credit cards, cash, and contactless payments like Apple Pay."];
+
+  if (ask(msg, [["kids"], ["children"], ["family"], ["child menu"]]))
+    return ["We’re family-friendly and offer kid-sized portions for select dishes!"];
+
+  if (ask(msg, [["human"], ["person"], ["representative"], ["staff"]]))
+    return ["You can reach our staff instantly using the live chat in the bottom right of the page."];
+
+  return ["I'm not sure about that one.", "But you can reach our staff instantly using the live chat in the bottom right of the page!"];
+}
+
+// --- Send Handler with Sequential Messages ---
+function handleSend() {
+  const input = userInput.value.trim();
+  if (!input) return;
+  addMessage("user", input);
+  userInput.value = "";
+
+  const responses = getResponse(input);
+  let i = 0;
+
+  function sendNext() {
+    if (i < responses.length) {
+      setTimeout(() => {
+        addMessage("bot", responses[i]);
+        i++;
+        sendNext();
+      }, 700 + responses[i].length * 15); // natural delay
+    }
+  }
+
+  sendNext();
+}
+
+sendBtn.addEventListener("click", handleSend);
+userInput.addEventListener("keypress", (e) => {
+  if (e.key === "Enter") handleSend();
+});
+
+window.addEventListener("DOMContentLoaded", () => {
+  addMessage(
+    "bot",
+    "Ciao! I'm Tratt-Bot — here to help with menus, hours, catering, and more. What would you like to know?"
+  );
+});
+</script>
