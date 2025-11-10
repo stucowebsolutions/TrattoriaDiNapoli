@@ -251,22 +251,42 @@ document.addEventListener("DOMContentLoaded", function() {
   menuContainer.addEventListener('change', calculateTotals);
 
   /* ---------------------------
-     Time options (populate selects)
-  */
-  const startTime = document.getElementById("startTime");
-  const endTime = document.getElementById("endTime");
-  function format12(h,m){ const ampm = h>=12?"PM":"AM"; let hh=h%12; if(hh===0) hh=12; const mm = m<10?"0"+m:m; return `${hh}:${mm} ${ampm}`; }
-  if (startTime && endTime) {
-    for(let h=8; h<=20; h++){
-      for(let m=0; m<60; m+=15){
-        const v = format12(h,m);
-        const o1 = document.createElement("option"); o1.value = o1.textContent = v;
-        const o2 = document.createElement("option"); o2.value = o2.textContent = v;
-        startTime.appendChild(o1);
-        endTime.appendChild(o2);
-      }
+   Time Options (10:30 AM → 9:00 PM, 30-min intervals)
+   Applies to: startTime, endTime, and eventTime
+---------------------------- */
+
+const startTime = document.getElementById("startTime");
+const endTime = document.getElementById("endTime");
+const eventTime = document.getElementById("eventTime");
+
+function format12(h, m) {
+  const ampm = h >= 12 ? "PM" : "AM";
+  let hh = h % 12;
+  if (hh === 0) hh = 12;
+  const mm = m.toString().padStart(2, "0");
+  return `${hh}:${mm} ${ampm}`;
+}
+
+function populateTimeSelect(select) {
+  if (!select) return;
+  for (let h = 10; h <= 21; h++) {
+    for (let m = 0; m < 60; m += 30) {
+      // Start at 10:30 AM
+      if (h === 10 && m < 30) continue;
+      // Stop at 9:00 PM exactly
+      if (h === 21 && m > 0) continue;
+
+      const option = document.createElement("option");
+      option.value = option.textContent = format12(h, m);
+      select.appendChild(option);
     }
   }
+}
+
+populateTimeSelect(startTime);
+populateTimeSelect(endTime);
+populateTimeSelect(eventTime);
+
 
   /* ---------------------------
      Ensure eventDate exists and set min date (2 weeks out)
@@ -409,6 +429,20 @@ document.addEventListener("DOMContentLoaded", function() {
     if (selected < minDate) { showError('eventDate', 'Event date must be at least two weeks from today'); return false; }
     clearError('eventDate'); return true;
   }
+  function validateEventTime() {
+  const el = document.getElementById("eventTime");
+  if (!el) return true; // in case the field doesn't exist
+  const value = el.value.trim();
+
+  if (!value) {
+    showError("eventTime", "Please select an event time");
+    return false;
+  }
+
+  clearError("eventTime");
+  return true;
+}
+
   function validateTimeframe() {
     if (contactMethod && contactMethod.value === 'phone') {
       const s = (document.getElementById('startTime') || {}).value;
@@ -438,6 +472,7 @@ document.addEventListener("DOMContentLoaded", function() {
     });
   });
   document.getElementById('eventDate')?.addEventListener('change', validateEventDate);
+  document.getElementById('eventTime')?.addEventListener('change', validateEventTime);
   document.getElementById('startTime')?.addEventListener('change', validateTimeframe);
   document.getElementById('endTime')?.addEventListener('change', validateTimeframe);
 
@@ -503,8 +538,10 @@ document.addEventListener("DOMContentLoaded", function() {
       const summaryLines = [
         `Number of People: ${document.getElementById('people')?.value || ''}`,
         `Event Date: ${document.getElementById('eventDate')?.value || ''}`,
+        `Event Time: ${document.getElementById('eventTime')?.value || ''}`,
+        `Confirmation Method: ${document.getElementById('contactMethod')?.value || ''}`,
         `Confirmation Days: ${confDays}`,
-        `Timeframe: ${document.getElementById('startTime')?.value || ''} - ${document.getElementById('endTime')?.value || ''}`,
+        `Confirmation Timeframe: ${document.getElementById('startTime')?.value || ''} - ${document.getElementById('endTime')?.value || ''}`,
         `Pickup/Delivery: ${pickupInput?.value || ''}`,
         '',
         'Ordered Items:',
