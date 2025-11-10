@@ -1,159 +1,84 @@
-/* catering-form.js
-   Clean rebuild for Trattoria di Napoli catering form.
-   - Wave floating labels (one smooth wave on first focus)
-   - Menu rendering (same data & calc logic as before)
-   - Hide/show menu options when selected (single-row appears)
-   - Hide delivery address until Delivery chosen
-   - Show "When can we reach you?" only when Phone is selected
-   - Insert eventDate if missing, enforce 2-week min
-   - Prepare "summary" textarea for Formspree submission
-   - All logic self-contained in this single external file
-*/
-
 document.addEventListener("DOMContentLoaded", function() {
-  /* ---------------------------
-     Inject small CSS needed for wave animation & wrappers
-     --------------------------- */
-  (function injectCSS(){
-    const css = `
-    /* Animated wave label spans */
-    .float-label { cursor: text; display:inline-block; white-space:nowrap; }
-    .float-label span { display:inline-block; transform: translateY(0); }
-    @keyframes float-wave {
-      0%   { transform: translateY(0); }
-      40%  { transform: translateY(-14px); }
-      70%  { transform: translateY(-6px); }
-      100% { transform: translateY(0); }
-    }
-    .float-label.wave-play span {
-      animation-name: float-wave;
-      animation-duration: 700ms;
-      animation-fill-mode: both;
-      animation-timing-function: cubic-bezier(0.2,0.8,0.2,1);
-    }
 
-    /* wrappers */
-    .float-label-wrapper { position: relative; display: inline-block; width: 100%; margin-top:10px; }
-    .float-label-wrapper .float-field { width: 100%; padding: 12px 14px; font-size: 18px; border: 1px solid var(--input-border); border-radius: 6px; background: white; box-sizing: border-box; transition: all 0.22s ease; }
-    .float-label-wrapper .float-label { position: absolute; left: 12px; top: 14px; font-size: 16px; color: #666; pointer-events: none; transition: all 0.28s cubic-bezier(0.68,-0.55,0.27,1.55); }
-    .float-label-wrapper.focused .float-label,
-    .float-label-wrapper.has-value .float-label { top: -10px; font-size: 13px; color: var(--accent); }
-    /* menu options hidden by default until active */
-    .menu-item .menu-options { display: none; }
-    .menu-item.active .menu-options { display: flex; gap: 8px; align-items:center; flex-wrap:wrap; }
-    /* Toggle button active states (fallback if not using additional styles) */
-    .toggle-active {
-      background: var(--accent) !important;
-      color: #fff !important;
-      border-color: var(--input-border) !important;
-    }
-    .toggle-inactive {
-      background: #fff !important;
-      color: #000 !important;
-      border-color: var(--input-border) !important;
-    }
-    `;
-    const s = document.createElement('style');
-    s.setAttribute('data-generated','catering-form-wave');
-    s.appendChild(document.createTextNode(css));
-    document.head.appendChild(s);
-  })();
-
-  /* ---------------------------
-     Helper: wave label builder (wraps inputs if not already wrapped)
-     - Triggers ONE wave animation on first focus (per-wrapper)
-     --------------------------- */
+  /* ---------------- Floating labels ----------------
+     Wrap inputs with .float-label-wrapper, build per-letter spans for wave animation.
+     Also set basic ARIA attributes so screen readers can read placeholders/labels.
+  */
   function enhanceFloatingInputs(selectors) {
     selectors.forEach(sel => {
       const el = document.querySelector(sel);
       if (!el) return;
-
-      // if already wrapped, skip
       if (el.closest('.float-label-wrapper')) return;
 
-      const placeholder = el.getAttribute('placeholder') || el.getAttribute('aria-label') || '';
+      const placeholder = el.getAttribute('placeholder') || el.getAttribute('aria-label') || (el.getAttribute('id') || '');
       const wrapper = document.createElement('div');
       wrapper.className = 'float-label-wrapper';
       wrapper.dataset.label = placeholder;
 
-      // create label element with spans
       const label = document.createElement('label');
       label.className = 'float-label';
-      // build spans for wave (characters)
       const text = String(placeholder || '');
       for (let i = 0; i < text.length; i++) {
         const ch = text[i] === ' ' ? '\u00A0' : text[i];
         const sp = document.createElement('span');
         sp.textContent = ch;
-        // stagger slightly for wave effect; base delay will be applied on wave trigger
         sp.style.display = 'inline-block';
         label.appendChild(sp);
       }
 
-      // prepare the input: add float-field class and remove placeholder (we keep value if present)
+      // keep input behavior; remove placeholder visually (we keep accessible label)
       el.classList.add('float-field');
-      // keep placeholder for a11y but we'll visually float it; we rely on label
       el.removeAttribute('placeholder');
 
-      // create cloned input to insert? We'll reparent the existing element
+      // replace in DOM
       const parent = el.parentNode;
       parent.replaceChild(wrapper, el);
       wrapper.appendChild(el);
       wrapper.appendChild(label);
 
-      // set input larger tappable area to avoid "too small" complaints
-      el.style.padding = '12px 14px';
-      el.style.fontSize = '18px';
-      el.style.minHeight = '44px';
+      // accessibility helpers
+      if (!el.getAttribute('aria-label')) {
+        el.setAttribute('aria-label', placeholder);
+      }
+      // link error message for screen reader
+      if (el.id) {
+        const errId = 'err-' + el.id;
+        el.setAttribute('aria-describedby', errId);
+      }
 
-      // manage classes for focus/blur/has-value
-      const playWaveOnce = (ev) => {
-        // mark focused
+      // play wave per-letter when focused (only if empty)
+      const playWave = () => {
         wrapper.classList.add('focused');
-
-        // wave play only first time
-        if (!wrapper.dataset.wavePlayed) {
-          // apply animationDelay for each span so the characters wave in sequence
+        if (!(el.value && String(el.value).trim() !== '')) {
           const spans = label.querySelectorAll('span');
           spans.forEach((sp, i) => {
-            // 28ms step gives a gentle wave; adjust if you'd like faster/slower
             sp.style.animationDelay = (i * 28) + 'ms';
             sp.style.animationDuration = '700ms';
           });
-          // add wave-play class to cause CSS keyframes to run
           label.classList.add('wave-play');
-          // make sure we don't re-run on future focuses
-          wrapper.dataset.wavePlayed = '1';
-          // remove wave-play class after animation to keep DOM tidy
           setTimeout(() => label.classList.remove('wave-play'), spans.length * 28 + 900);
         }
       };
       const onBlur = () => {
         wrapper.classList.remove('focused');
-        if (el.value && String(el.value).trim().length) wrapper.classList.add('has-value');
-        else wrapper.classList.remove('has-value');
+        wrapper.classList.toggle('has-value', el.value && String(el.value).trim() !== '');
       };
       const onInput = () => {
-        if (el.value && String(el.value).trim().length) wrapper.classList.add('has-value');
-        else wrapper.classList.remove('has-value');
+        wrapper.classList.toggle('has-value', el.value && String(el.value).trim() !== '');
       };
 
-      el.addEventListener('focus', playWaveOnce, { once: false });
-      el.addEventListener('focus', () => wrapper.classList.add('focused'));
+      el.addEventListener('focus', playWave);
       el.addEventListener('blur', onBlur);
       el.addEventListener('input', onInput);
-
-      // clicking the label should focus input
       label.addEventListener('click', () => el.focus());
 
-      // if it already has a value (prefill), mark has-value
-      if (el.value && String(el.value).trim().length) wrapper.classList.add('has-value');
+      if (el.value && String(el.value).trim() !== '') wrapper.classList.add('has-value');
     });
   }
 
   /* ---------------------------
-     Menu Data (unchanged)
-     --------------------------- */
+     Menu data and rendering (left unchanged functionally)
+  */
   const menuData = {
     "Antipasta":[
       {name:"House Salad",priceHalf:50,priceFull:100,servesHalf:10,servesFull:20},
@@ -186,9 +111,6 @@ document.addEventListener("DOMContentLoaded", function() {
     ]
   };
 
-  /* ---------------------------
-     Render menu into DOM (options hidden until checkbox checked)
-     --------------------------- */
   const menuContainer = document.getElementById("menuContainer");
 
   function createMenuItemCard(item, categoryKey, itemIndex) {
@@ -251,9 +173,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // checkbox toggles the options (single row appears)
     cb.addEventListener('change', () => {
-      if (cb.checked) card.classList.add('active');
-      else card.classList.remove('active');
-      // recalc totals
+      card.classList.toggle('active', cb.checked);
       calculateTotals();
     });
 
@@ -279,7 +199,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
   /* ---------------------------
      Totals & DOM refs
-     --------------------------- */
+  */
   const subtotalEl = document.getElementById("subtotal"),
         serviceEl = document.getElementById("serviceCharge"),
         totalEl = document.getElementById("totalPrice"),
@@ -332,7 +252,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
   /* ---------------------------
      Time options (populate selects)
-     --------------------------- */
+  */
   const startTime = document.getElementById("startTime");
   const endTime = document.getElementById("endTime");
   function format12(h,m){ const ampm = h>=12?"PM":"AM"; let hh=h%12; if(hh===0) hh=12; const mm = m<10?"0"+m:m; return `${hh}:${mm} ${ampm}`; }
@@ -349,69 +269,68 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
   /* ---------------------------
-     Ensure eventDate exists (insert if missing)
-     - Insert after the top-grid block
-     --------------------------- */
+     Ensure eventDate exists and set min date (2 weeks out)
+  */
   (function ensureEventDate(){
     let eventDate = document.getElementById('eventDate');
     if (!eventDate) {
+      // if the HTML somehow doesn't include it, create it (keeps backward compat)
       const form = document.getElementById('catering-form');
-      const topGrid = form.querySelector('.top-grid');
-      // build a small block with label + input
       const wrapper = document.createElement('div');
       wrapper.innerHTML = `
-        <label class="field-label" for="eventDate">Event Date *</label>
-        <input id="eventDate" name="eventDate" required type="date" placeholder="Event Date">
-        <span class="error-message" id="err-eventDate"></span>
-        <small class="note">*(Orders must be placed at least two weeks in advance.)</small>
+        <input id="eventDate" name="eventDate" required type="date" aria-describedby="err-eventDate">
+        <span class="error-message" id="err-eventDate" role="alert" aria-live="polite"></span>
       `;
-      // insert wrapper after the first top-grid (or at top if not found)
-      if (topGrid && topGrid.parentNode) topGrid.parentNode.insertBefore(wrapper, topGrid.nextSibling);
-      else form.insertBefore(wrapper, form.firstChild);
+      form.insertBefore(wrapper, form.firstChild);
       eventDate = document.getElementById('eventDate');
-      // enhance newly created date input later with floating label
     }
-    // set min date (2 weeks out)
     function setMinDate(){
       const today = new Date();
       const min = new Date(today.getFullYear(), today.getMonth(), today.getDate()+14);
       if (eventDate) eventDate.min = min.toISOString().split("T")[0];
     }
     setMinDate();
-    // re-run when day changes (not strictly necessary but safe)
     try { setInterval(setMinDate, 6*60*60*1000); } catch(e){}
   })();
 
   /* ---------------------------
-     Pickup / Delivery toggle logic + color swapping
-     --------------------------- */
+     Pickup / Delivery toggle logic + keyboard accessibility
+  */
   const pickupBtn = document.getElementById("togglePickup"),
         deliveryBtn = document.getElementById("toggleDelivery"),
         pickupInput = document.getElementById("pickupDeliveryInput"),
         deliveryWrapper = document.getElementById("deliveryWrapper");
 
   function setPickup() {
-    // visual states
     pickupBtn.classList.add('toggle-active'); pickupBtn.classList.remove('toggle-inactive');
-    deliveryBtn.classList.add('toggle-inactive'); deliveryBtn.classList.remove('toggle-active');
-    // semantic value
+    deliveryBtn.classList.remove('toggle-active'); deliveryBtn.classList.add('toggle-inactive');
     if (pickupInput) pickupInput.value = 'pickup';
     if (deliveryWrapper) deliveryWrapper.style.display = 'none';
+    pickupBtn.setAttribute('aria-pressed','true'); pickupBtn.setAttribute('aria-checked','true');
+    deliveryBtn.setAttribute('aria-pressed','false'); deliveryBtn.setAttribute('aria-checked','false');
     clearError('deliveryAddress');
   }
   function setDelivery() {
     deliveryBtn.classList.add('toggle-active'); deliveryBtn.classList.remove('toggle-inactive');
-    pickupBtn.classList.add('toggle-inactive'); pickupBtn.classList.remove('toggle-active');
+    pickupBtn.classList.remove('toggle-active'); pickupBtn.classList.add('toggle-inactive');
     if (pickupInput) pickupInput.value = 'delivery';
     if (deliveryWrapper) deliveryWrapper.style.display = 'block';
+    pickupBtn.setAttribute('aria-pressed','false'); pickupBtn.setAttribute('aria-checked','false');
+    deliveryBtn.setAttribute('aria-pressed','true'); deliveryBtn.setAttribute('aria-checked','true');
   }
 
-  if (pickupBtn) pickupBtn.addEventListener('click', setPickup);
-  if (deliveryBtn) deliveryBtn.addEventListener('click', setDelivery);
+  if (pickupBtn) {
+    pickupBtn.addEventListener('click', setPickup);
+    pickupBtn.addEventListener('keydown', (e)=> { if(e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); setPickup(); }});
+  }
+  if (deliveryBtn) {
+    deliveryBtn.addEventListener('click', setDelivery);
+    deliveryBtn.addEventListener('keydown', (e)=> { if(e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); setDelivery(); }});
+  }
 
   /* ---------------------------
-     Contact method logic (select based)
-     --------------------------- */
+     Contact method logic (select-based)
+  */
   const contactMethod = document.getElementById('contactMethod');
   const reachWrapper = document.getElementById('reachWrapper');
 
@@ -420,9 +339,11 @@ document.addEventListener("DOMContentLoaded", function() {
     const val = contactMethod.value;
     if (val === 'phone') {
       if (reachWrapper) reachWrapper.style.display = 'block';
+      // focus first checkbox for keyboard users
+      const firstChk = reachWrapper.querySelector("input[type='checkbox']");
+      if (firstChk) firstChk.focus();
     } else {
       if (reachWrapper) reachWrapper.style.display = 'none';
-      // clear any timeframe errors
       clearError('timeframe');
     }
     clearError('contactMethod');
@@ -430,50 +351,57 @@ document.addEventListener("DOMContentLoaded", function() {
   if (contactMethod) contactMethod.addEventListener('change', updateContactMethodUI);
 
   /* ---------------------------
-     Validation helpers
-     --------------------------- */
+     Validation helpers (also set ARIA states)
+  */
   function showError(id, message) {
     const el = document.getElementById('err-' + id);
-    if (el) { el.textContent = message; el.style.display = 'block'; }
+    if (el) {
+      el.textContent = message;
+      el.style.display = 'block';
+      el.setAttribute('role','alert');
+      const input = document.getElementById(id);
+      if (input) input.setAttribute('aria-invalid','true');
+    }
   }
   function clearError(id) {
     const el = document.getElementById('err-' + id);
-    if (el) { el.textContent = ''; el.style.display = 'none'; }
+    if (el) {
+      el.textContent = '';
+      el.style.display = 'block'; // keep block to preserve spacing (empty)
+      el.removeAttribute('role');
+    }
+    const input = document.getElementById(id);
+    if (input) input.removeAttribute('aria-invalid');
   }
 
   function validateName() {
-    const el = document.getElementById('name');
-    if (!el) return true;
+    const el = document.getElementById('name'); if (!el) return true;
     const v = String(el.value || '').trim();
     if (!v || v.length < 2) { showError('name', 'Please enter name (2+ chars)'); return false; }
     clearError('name'); return true;
   }
   function validateEmail() {
-    const el = document.getElementById('email');
-    if (!el) return true;
+    const el = document.getElementById('email'); if (!el) return true;
     const v = String(el.value || '').trim();
     if (!v) { showError('email', 'Please enter your email'); return false; }
     if (!el.checkValidity()) { showError('email', 'Please enter a valid email'); return false; }
     clearError('email'); return true;
   }
   function validatePhone() {
-    const el = document.getElementById('phone');
-    if (!el) return true;
+    const el = document.getElementById('phone'); if (!el) return true;
     const v = String(el.value || '').trim();
     const digits = v.replace(/[^\d]/g, '');
     if (!v || digits.length < 7) { showError('phone', 'Please enter a valid phone number'); return false; }
     clearError('phone'); return true;
   }
   function validatePeople() {
-    const el = document.getElementById('people');
-    if (!el) return true;
+    const el = document.getElementById('people'); if (!el) return true;
     const v = el.value;
     if (!v || Number(v) < 1) { showError('people', 'Enter number of people (1+)'); return false; }
     clearError('people'); return true;
   }
   function validateEventDate() {
-    const el = document.getElementById('eventDate');
-    if (!el) return true;
+    const el = document.getElementById('eventDate'); if (!el) return true;
     const v = el.value;
     if (!v) { showError('eventDate', 'Please pick an event date'); return false; }
     const selected = new Date(v);
@@ -482,7 +410,6 @@ document.addEventListener("DOMContentLoaded", function() {
     clearError('eventDate'); return true;
   }
   function validateTimeframe() {
-    // timeframe only required if phone chosen
     if (contactMethod && contactMethod.value === 'phone') {
       const s = (document.getElementById('startTime') || {}).value;
       const e = (document.getElementById('endTime') || {}).value;
@@ -502,37 +429,39 @@ document.addEventListener("DOMContentLoaded", function() {
     clearError('deliveryAddress'); return true;
   }
 
-  // attach blur/listeners
-  const nameEl = document.getElementById('name'), emailEl = document.getElementById('email'),
-        phoneEl = document.getElementById('phone'), peopleEl = document.getElementById('people'),
-        deliveryAddressEl = document.getElementById('deliveryAddress'),
-        eventDateEl = document.getElementById('eventDate');
-
-  if (nameEl) nameEl.addEventListener('blur', validateName);
-  if (emailEl) emailEl.addEventListener('blur', validateEmail);
-  if (phoneEl) phoneEl.addEventListener('blur', validatePhone);
-  if (peopleEl) peopleEl.addEventListener('blur', validatePeople);
-  if (eventDateEl) eventDateEl.addEventListener('change', validateEventDate);
-  if (document.getElementById('startTime')) document.getElementById('startTime').addEventListener('change', validateTimeframe);
-  if (document.getElementById('endTime')) document.getElementById('endTime').addEventListener('change', validateTimeframe);
-  if (deliveryAddressEl) deliveryAddressEl.addEventListener('blur', validateDeliveryAddressIfNeeded);
+  // attach blur/listeners (keyboard friendly)
+  ['name','email','phone','people','deliveryAddress'].forEach(id => {
+    const input = document.getElementById(id);
+    if (input) input.addEventListener('blur', () => {
+      const map = { name: validateName, email: validateEmail, phone: validatePhone, people: validatePeople, deliveryAddress: validateDeliveryAddressIfNeeded };
+      map[id]?.();
+    });
+  });
+  document.getElementById('eventDate')?.addEventListener('change', validateEventDate);
+  document.getElementById('startTime')?.addEventListener('change', validateTimeframe);
+  document.getElementById('endTime')?.addEventListener('change', validateTimeframe);
 
   /* ---------------------------
-     Form submission: summary formatting for Formspree
-     --------------------------- */
+     Form submission: summary formatting for Formspree (unchanged behavior)
+  */
   const form = document.getElementById('catering-form');
   const summaryField = document.getElementById('summaryField');
 
   if (form) {
-    form.addEventListener('submit', function(e){
+    form.addEventListener('submit', function(e) {
       // run validators
       const validators = [validateName, validateEmail, validatePhone, validatePeople, validateEventDate, validateTimeframe, validateDeliveryAddressIfNeeded];
       for (const fn of validators) {
         if (!fn()) {
           e.preventDefault();
-          // scroll to first error (if present)
           const firstErr = document.querySelector('.error-message:not(:empty)');
-          if (firstErr) firstErr.scrollIntoView({behavior:'smooth', block:'center'});
+          if (firstErr) {
+            // focus the related input if possible
+            const id = (firstErr.id || '').replace('err-','');
+            const input = document.getElementById(id);
+            if (input) input.focus();
+            firstErr.scrollIntoView({behavior:'smooth', block:'center'});
+          }
           return;
         }
       }
@@ -602,15 +531,14 @@ document.addEventListener("DOMContentLoaded", function() {
 
   /* ---------------------------
      Initialize floating labels (for key inputs)
-     - We'll target main contact inputs + delivery + eventDate
-     --------------------------- */
+  */
   enhanceFloatingInputs([
-    '#name', '#email', '#phone', '#people', '#deliveryAddress', '#eventDate'
+    '#name', '#email', '#phone', '#people', '#deliveryAddress'
   ]);
 
   /* ---------------------------
      Initial UI defaults
-     --------------------------- */
+  */
   try { setPickup(); } catch(e){}
   try { updateContactMethodUI(); } catch(e){}
   try { calculateTotals(); } catch(e){}
