@@ -1,0 +1,212 @@
+/* =========================
+   Base Reset & Variables
+========================= */
+
+:root {
+  --text-primary: #1f2933;
+  --text-secondary: #616e7c;
+  --border-light: #e4e7eb;
+  --accent: #8b1e1e;
+
+  --price-width: 120px;
+  --max-content-width: 900px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Georgia", "Times New Roman", serif;
+  color: var(--text-primary);
+  line-height: 1.5;
+  background: #fff;
+}
+
+/* =========================
+   Page Layout
+========================= */
+
+.menu-page {
+  max-width: var(--max-content-width);
+  margin: auto;
+  padding: 24px 16px 48px;
+}
+
+.menu-header {
+  margin-bottom: 32px;
+  border-bottom: 2px solid var(--border-light);
+  padding-bottom: 16px;
+}
+
+.menu-header h1 {
+  font-size: 3rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.menu-subtitle {
+  color: var(--text-secondary);
+  font-size: 1.5rem;
+}
+
+
+/* =========================
+   Category Sections
+========================= */
+
+.menu-category {
+  margin-bottom: 40px;
+  scroll-margin-top: 80px;
+}
+
+.menu-category h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border-light);
+  padding-bottom: 6px;
+}
+
+.menu-category-description {
+  color: var(--text-secondary);
+  font-size: 1.5rem;
+  margin: 12px 0 24px;
+}
+
+/* =========================
+   Menu Items
+========================= */
+
+.menu-item {
+  margin-bottom: 24px;
+}
+
+.menu-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.menu-item-name {
+  font-weight: 700;
+  font-size: 1.5rem;
+}
+
+.menu-item-price {
+  font-weight: 700;
+  font-size: 1.5rem;
+  text-align: right;
+  min-width: var(--price-width);
+}
+
+/* =========================
+   Serving Info (Catering)
+========================= */
+
+.menu-item-servings {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.menu-item-description {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin-top: 6px;
+}
+
+.menu-item-choices {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin-top: 6px;
+  font-style: italic;
+}
+
+/* Hide empty blocks */
+.menu-item-servings:empty,
+.menu-item-description:empty,
+.menu-item-choices:empty {
+  display: none;
+}
+
+/* =========================
+   Skeleton Loaders
+========================= */
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #f0f0f0 25%,
+    #e4e4e4 37%,
+    #f0f0f0 63%
+  );
+  background-size: 400% 100%;
+  animation: skeleton-loading 1.4s ease infinite;
+  border-radius: 4px;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+.skeleton-text {
+  height: 16px;
+  width: 100%;
+  margin-bottom: 6px;
+}
+
+.skeleton-title {
+  height: 24px;
+  width: 60%;
+  margin-bottom: 12px;
+}
+
+.skeleton-price {
+  height: 18px;
+  width: 60px;
+}
+
+/* =========================
+   Print / PDF Optimization
+========================= */
+
+@media print {
+  body {
+    color: #000;
+    background: #fff;
+  }
+
+  .menu-page {
+    padding: 0;
+  }
+
+  .menu-item {
+    break-inside: avoid;
+  }
+
+  .menu-category {
+    page-break-inside: avoid;
+  }
+
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
+}
+
+/* =========================
+   Utility / Alignment
+========================= */
+
+.text-right {
+  text-align: right;
+}
