@@ -43,13 +43,15 @@ body {
 
 .menu-header h1 {
   font-size: 3rem;
-  font-weight: 700;
+  font-weight: 500;
+  text-align: center;
   margin-bottom: 4px;
 }
 
 .menu-subtitle {
   color: var(--text-secondary);
   font-size: 1.5rem;
+  text-align: center;
 }
 
 
@@ -60,13 +62,13 @@ body {
 .menu-category {
   margin-bottom: 40px;
   scroll-margin-top: 80px;
+  border-top: 1px solid var(--border-light);
 }
 
 .menu-category h2 {
   font-size: 2rem;
-  font-weight: 700;
+  font-weight: 300;
   margin-bottom: 8px;
-  border-bottom: 1px solid var(--border-light);
   padding-bottom: 6px;
 }
 
@@ -92,12 +94,12 @@ body {
 }
 
 .menu-item-name {
-  font-weight: 700;
+  font-weight: 200;
   font-size: 1.5rem;
 }
 
 .menu-item-price {
-  font-weight: 700;
+  font-weight: 300;
   font-size: 1.5rem;
   text-align: right;
   min-width: var(--price-width);
@@ -108,19 +110,19 @@ body {
 ========================= */
 
 .menu-item-servings {
-  font-size: 1rem;
+  font-size: 1.15rem;
   color: var(--text-secondary);
   margin-top: 4px;
 }
 
 .menu-item-description {
-  font-size: 1rem;
+  font-size: 1.15rem;
   color: var(--text-secondary);
   margin-top: 6px;
 }
 
 .menu-item-choices {
-  font-size: 1rem;
+  font-size: 1.15rem;
   color: var(--text-secondary);
   margin-top: 6px;
   font-style: italic;
