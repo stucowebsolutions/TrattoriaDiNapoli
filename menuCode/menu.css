@@ -59,7 +59,7 @@ body {
 ========================= */
 
 .weeknight-specials {
-  margin: 32px 0 40px;
+  margin: 16px 0 20px;
   padding: 24px 0;
   border-top: 1px solid var(--border-light);
   border-bottom: 1px solid var(--border-light);
@@ -67,6 +67,7 @@ body {
 
 .weeknight-specials h2 {
   font-size: 2rem;
+  text-align: center;
   font-weight: 300;
   margin-bottom: 24px;
 }
