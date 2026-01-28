@@ -54,6 +54,11 @@ body {
   text-align: center;
 }
 
+.menu-policy {
+  color: var(--text-primary);
+  font-size: 1.2rem;
+  text-align: center;
+}
 /* =========================
    Weeknight Specials
 ========================= */
